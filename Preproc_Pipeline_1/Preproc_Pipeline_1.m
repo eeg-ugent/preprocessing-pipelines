@@ -1,13 +1,16 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%  PRE-PROCESSING PIPELINE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%  EMILIE CASPAR RWANDA DATA        %%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%  FIRST CREATED BY RAQUEL LONDON 09-11-21  %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%  PRE-PROCESSING PIPELINE #1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% This pipeline was created specifically for data that Emilie Caspar and
+% Guillaume Pech collected in Rwanda. The main issue was that, since the
+% electrical system was very contaminated and unstable, there were large
+% electrical artifacts in the data. The huge square waves had to be taken
+% out manually.
+
+% To run each section, you need to create the write folder
 
 %% Pre-clean taking out square waves (manually) and downsample to 512
-
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Raw_Data\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean\';
@@ -20,7 +23,8 @@ eeglab
 s = 1;
     
 % 1.- Import with average of mastoid
-EEG = pop_biosig([readfolder 'P' filelist(s).name(2:4) '_PAIN.bdf'],'channels',1:66,'ref',65:66); %import data with average of mastoids
+EEG = pop_biosig([readfolder 'P' filelist(s).name(2:4) '_PAIN.bdf'],...
+    'channels',1:66,'ref',65:66); %import data with average of mastoids
 [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 0,'gui','off'); 
 EEG = eeg_checkset( EEG );
 
@@ -28,17 +32,20 @@ EEG = eeg_checkset( EEG );
 EEG = pop_resample( EEG, 512); 
 EEG = eeg_checkset( EEG );
    
-% 3.- Visual or automatic artifact rejection on the continuous data (only to throw out square waves)
-%if spectrum shows ripple, then look for square waves and cut them out
-%(you can set the time to display high so you can go through the data
-%very fast). Make sure to remove DC offset to visualize so you dont
-%miss any channels. If the spectrum was OK and you dont suspect any
-%square waves you can just continue and ignore the next plots, and then
-%continue again to save the downsampled dataset.
+% 3.- Visual or automatic artifact rejection on the continuous data (only 
+% to throw out square waves)
+% If spectrum shows ripple, then look for square waves and cut them out
+% (you can set the time to display high so you can go through the data
+% very fast). Make sure to remove DC offset to visualize so you don't
+% miss any channels. If the spectrum was OK and you dont suspect any
+% square waves you can just continue and ignore the next plots, and then
+% continue again to save the downsampled dataset.
 
-% check for square waves (the spectrum will look weird with ripple and/or other strangeness)
+% check for square waves (the spectrum will look weird with ripple and/or 
+% other strangeness)
 figure
-pop_spectopo(EEG, 1, [0  EEG.pnts / EEG.srate], 'EEG' , 'freqrange',[0 100],'electrodes','off');
+pop_spectopo(EEG, 1, [0  EEG.pnts / EEG.srate], 'EEG' , 'freqrange',...
+    [0 100],'electrodes','off');
 
 % if spectrum looks weird; plot data and mark square waves for rejection
 % (click "reject" after going through the whole dataset)
@@ -46,18 +53,16 @@ pop_eegplot( EEG, 1, 1, 1);
 
 % recheck spectrum
 figure
-pop_spectopo(EEG, 1, [0  EEG.pnts / EEG.srate], 'EEG' , 'freqrange',[0 100],'electrodes','off');
+pop_spectopo(EEG, 1, [0  EEG.pnts / EEG.srate], 'EEG' , 'freqrange',...
+    [0 100],'electrodes','off');
 
-% If everything is OK
-% save dataset   
-EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4) '_PAIN_sr512_PreClean.set']);
+% If everything is OK save dataset   
+EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4)...
+    '_PAIN_sr512_PreClean.set']);
 clear EEG
-
-
  
-%% Highpass > 1Hz (for better ICA), zapline to eliminate line noise, lowpass < 40 to remove residual linenoise
-
-clear all; close all; clc;
+%% Highpass > 1Hz (for better ICA), zapline to eliminate line noise, 
+% lowpass < 40 to remove residual line noise
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40\';
@@ -95,8 +100,6 @@ end
 
 
 %% Remove bad channels and interpolate 
-
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP\';
@@ -143,7 +146,6 @@ clear badchans
 EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4) '_PAIN_sr512_PreClean_HP1_ZapP_LP40_IP.set']);
 
 %% Average to reference and epoch
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP_AvRef\';
@@ -165,7 +167,8 @@ for s = 1:length(filelist)
     [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
 
     % 10a.- create SHORT epochs timelocked to stimulus 
-    % The length of the epoch is for ICA, assuming the period of interest (including baseline) is -700 to 1300 ms and freqrange is 3 - 30 Hz
+    % The length of the epoch is for ICA, assuming the period of interest
+    % (including baseline) is -700 to 1300 ms and freqrange is 3 - 30 Hz
     EEG = pop_epoch( EEG, {  '11' '12' '13' '14' '15' '16' '17' '18' '21' '22' '23' '24' '25' '26' '27' '28' '31' '32' '33' '34' '35' '36' '37' '38' '41' '42' '43' '44' '45' '46' '47' '48' '51' '52' '53' '54' '55' '56' '57' '58' '61' '62' '63' '64' '65' '66' '67' '68'   }, [.7  1.3], 'newname', 'BDF file resampled epochs', 'epochinfo', 'yes'); 
     EEG = eeg_checkset( EEG );
 
@@ -177,7 +180,6 @@ end
 
 
 %% Visual artifact rejection, very aggressively throw out any unique one-off artifacts
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP_AvRef\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP_AvRef_Art\';
@@ -207,7 +209,6 @@ EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4) '_PAIN
 
 
 %% ICA (project out blinks and eye-movements, save weights)
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP_AvRef_Art\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP_AvRef_Art_ICA\';
@@ -244,8 +245,6 @@ end
 % 
 %  ROUND 2 BEGINS 
 %% Highpass > 0.1Hz, zapline to eliminate line noise, lowpass < 40 to remove residual linenoise
-
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40\';
@@ -284,8 +283,6 @@ end
 
 %% Remove bad channels and interpolate 
 
-clear all; close all; clc;
-
 readfolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP\';
 cd(readfolder);
@@ -323,7 +320,6 @@ for s = 1:length(filelist)
 end
 
 %% Average to reference and epoch
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef\';
@@ -355,7 +351,6 @@ for s = 1:length(filelist)
 end
     
 %% Apply previously calculated ICA weights
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef\';
 ICA_readfolder = 'D:\Emilie_Caspar\Processed_Data\sr512_PreClean_HP1_ZapP_LP40_IP_AvRef_Art_ICA\';
@@ -398,8 +393,6 @@ EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4) '_PAIN
 
 %% Baselining and artefact rejection
 
-clear all; close all; clc;
-
 readfolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_Art\';
 cd(readfolder);
@@ -432,7 +425,6 @@ EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4) '_PAIN
 
 
 %% Laplacian transform
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art_Lap\';
@@ -472,14 +464,12 @@ for s = 1:length(filelist)
     EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4) '_PAIN_sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art_Lap.set']);
 
 end
-
-    
+   
    
 %% Convert to fieldtrip format
 % =========================================================================
 %            Convert .set files to FieldTrip format
 % =========================================================================
-clear all; close all; clc;
 
 readfolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art_Lap\';
 writefolder = 'D:\Emilie_Caspar\Processed_Data\round2\sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art_Lap_FT\';
