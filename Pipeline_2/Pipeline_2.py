@@ -21,6 +21,8 @@
 #Import the necessary Python modules:
 import numpy as np
 import mne
+import matplotlib.pyplot as plt
+import os
 
 #%%############################################################################
 """import data"""
@@ -34,7 +36,7 @@ P3_data_dir = working_dir + 'DataOddball/'
 montage = mne.channels.make_standard_montage('biosemi64')
 
 # Loads your BioSemi data file
-raw = mne.io.read_raw_bdf(P3_data_dir + 'p2_oddball.bdf',preload=True)
+raw = mne.io.read_raw_fif(P3_data_dir + 'BioSemi_P3_Sub14_raw.fif',preload=True)
 
 #%%############################################################################
 """filter the data"""
@@ -74,15 +76,15 @@ interp_filt_raw.load_data().interpolate_bads(reset_bads=False)
 """epoch data"""
 ###############################################################################
 
-# Event times stamped to the acquisition software can be extracted using mne.find_events():
-
-# find events from the RAW dataset
+# find events from the RAW dataset '3' marks the onset of the standard and '4' 
+# marks the onset of an oddball
 events = mne.find_events(raw)
 
 # The event_id is a dictionary in which you can name your conditions. tmin/tmax
 # defines the length of the epoch relative to the event in seconds
+# no baseline correction is done at this point to avoid problems for ICA
 epochs = mne.Epochs(interp_filt_raw, events, event_id = {'Standard':3, 'Oddball':4}, tmin=-0.2, tmax=1,
-                     proj=False, baseline=(None, 0),
+                     proj=False, baseline=(None),
                      preload=True, reject=None)
 
 # Check how many epochs of each type were created
@@ -93,62 +95,32 @@ np.count_nonzero(epochs.events[:,2] == 4)
 """re-reference to the average"""
 ###############################################################################
 
-# Plot ERPs (over all trials) for each electrode before re-referencing and make a screenshot
-evoked_pre_average = epochs.average()
-evoked_pre_average.plot(window_title = 'original reference')
-
 # rereference to average (average reference makes all the ICA scalp
-# topography have zero total potential (i.e. red and blue always balances))
+# topographies have zero total potential (i.e. red and blue always balances))
 epochs.set_eeg_reference().apply_proj().average()
-
-# ------>>>>>>  ASSIGNMENT Nr 11:
-# Write 2 lines of code to plot epochs after re-referencing and make a screenshot
-evoked_reref_to_average = epochs.average()
-evoked_reref_to_average.plot(window_title = 'rereferenced')
-# Compare the two plots, what do you notice?
 
 #%%############################################################################
 """visual artifact rejection"""
 ###############################################################################
 
-# ------>>>>>>  ASSIGNMENT Nr 12:
 # Plot the epochs to do visual trial rejection.
 epochs.plot(n_epochs = 5, n_channels = 64)
 # - Click on an epoch to reject it from the dataset
 # - Use keyboard shortcuts to adapt the window size (HELP to see keyboard controls)
-# - First scroll through the entire data set to get a feel for it
-# - Adjust the scale to a comfortable level 
-# - Then start at the beginning and click on epochs you think should be rejected
-# - Don't reject trials with eye blinks or eye movements; we will get these with ICA
 # - Close the figure for the selected epochs to be rejected
 
-
-# ------>>>>>>  ASSIGNMENT Nr 13:
-# Use the variable explorer to write one line of code to answer the following question:
-# How many epochs of each condition do you have left? 
-epochs.drop
+epochs.drop #this shows you the number of remaining epochs in each condition
    
     
 #%%############################################################################
 """Independent Components Analysis"""
 ###############################################################################
 
-# Now we prepare to run ICA
-# We need to know how many ICA components we want
-# This is the same amount as the number of UNIQUE channels
-# We have to take into account that an interpolated channel does not have any unique
-# information, since it is made up of information from the surrounding channels
-# We also need to subtract 1 channel, because we are using an average reference
-# because this leads to all the channels having in common an amount of
-# information equal to 1/number of channels
-# So, the correct number of components to get out of the ICA =
-# Original number of channels - number of interpolated channels - 1
-
-# ------>>>>>>  ASSIGNMENT Nr 14:
-# write a line of code to find the correct number of components
-# to get from the ICA
+# To run the ICA we need to know the rank of the data (how many unique channels)
+# The rank of the data defines the number of components we can get from the ICA.
+# Interpolated channels do not have any unique information and we also need to 
+# subtract 1 channel for the average reference:
 ncomp = len(epochs.pick_types(eeg = True).ch_names) - len(epochs.info['bads']) - 1
-print(ncomp)
 
 # create ICA object with desired parameters
 ica = mne.preprocessing.ICA(n_components = ncomp)
@@ -161,30 +133,17 @@ ica.fit(epochs)
 ica.plot_components()
 
 # Plot the properties of a single component (e.g. to check its frequency profile)
-ica.plot_properties(epochs, picks=7)
+ica.plot_properties(epochs, picks=11)
 
 #Look at the timecourse of the component
 ica.plot_sources(raw)
 
 # Decide which component(s) to "project out of the data"
 # Click on their name; this will turn them grey
-# Remember; the component will not ONLY represent artifactual activity
-# There will also be some brain activity mixed into it; ICA is not perfect
-# This is why you want to be very conservative and not project just any
-# component out of your data. Once you selected the component(s), move on to 
-# the next assignment:
 
-# ------>>>>>>  ASSIGNMENT Nr 15:
-# Make a screenshot of the following plot and describe what it represents
-ica.plot_overlay(evoked_reref_to_average)
-
-#%%############################################################################
-"""Apply ICA weights to the data"""
-###############################################################################
-
-# Now we take the ICA weights and apply them to the data
 clean_data = epochs.copy() #create a copy of the raw data and name it ica_raw
 ica.apply(clean_data) #Apply the weights of the ICA to the copy of the raw data
+clean_data.plot() #check your data 
 
 # Save the clean data
 clean_data.save(P3_data_dir + 'clean_data-epo.fif')
