@@ -19,7 +19,7 @@
 
 %% housekeeping                                         MANUAL INPUT NEEDED
 
-close all;clear all;clc %start with a clean workspace
+clear all %start with a clean workspace
 
 % set main folders for raw and processed data
 raw = 'D:\Emilie_Caspar\Raw_Data'; 
@@ -276,7 +276,8 @@ filelist = dir('*.set');
 for s = 1:length(filelist)
     
     % open dataset
-    EEG = pop_loadset('filename', filelist(s).name);
+    EEG = pop_loadset('filename', [readfolder '\' pretext ...
+        filelist(s).name(numstart:numend) posttext readname  '.set']);
 
     %load previously identified bad channels, this to count how many
     %channels were interpolated and calculate the rank of the data (the
@@ -318,7 +319,8 @@ eeglab
 for s = 1:length(filelist)
     
     %open dataset
-    EEG = pop_loadset('filename', filelist(s).name);
+    EEG = pop_loadset('filename', [readfolder '\' pretext ...
+        filelist(s).name(numstart:numend) posttext readname '.set']);
     
     % 4b.- Highpass at 0.1 Hz 
     EEG = pop_eegfiltnew(EEG, [], 0.1, [], true, [], 1); 
@@ -355,8 +357,9 @@ filelist = dir('*.set');
 for s = 1:length(filelist)
     
     %open dataset
-    EEG = pop_loadset('filename', filelist(s).name);
-
+    EEG = pop_loadset('filename', [readfolder '\' pretext ...
+        filelist(s).name(numstart:numend) posttext readname '.set']);
+    
     %read channel information from file
     EEG = pop_editset(EEG, 'chanlocs', [processed '\66channs.locs']);
   
@@ -404,7 +407,8 @@ filelist = dir('*.set');
 for s = 1:length(filelist)
 
     %open dataset
-    EEG = pop_loadset('filename', filelist(s).name);
+    EEG = pop_loadset('filename', [readfolder '\' pretext ...
+        filelist(s).name(numstart:numend) posttext readname '.set']);
 
     % 9b.- Exclude mastoids from the dataset and then rereference to 
     % average of remaining head electrodes 
@@ -427,7 +431,7 @@ for s = 1:length(filelist)
 
 end
     
-%% R2-Apply ICA                                         MANUAL INPUT NEEDED
+%% R2-Apply ICA                                   MANUAL INPUT NEEDED HERE
 
 readname = 'sr512_PreClean_HP01_ZapP_LP40_IP_Ref_lEp';
 readfolder = [processed '\round2\' readname];
@@ -435,8 +439,8 @@ ICA_readfolder = [processed '\sr512_PreClean_HP1_ZapP_LP40_IP_Ref_sEp_Art_ICA'];
 writename = [readname '_ICA'];
 writefolder = [processed '\round2\' writename];% make sure this folder exists
 
-cd(ICA_readfolder);
-ICA_filelist = dir('*.set'); 
+cd(readfolder);
+filelist = dir('*.set'); 
 
 % manually input subject number:
 % Do this section for all PP's first, then you can run the following
@@ -444,14 +448,14 @@ ICA_filelist = dir('*.set');
 s = 1;%        <<< ------------------------------ MANUAL INPUT NEEDED HERE
 
 % load dataset with ICA weights
-EEG = pop_loadset('filename', ICA_filelist(s).name);
-[ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 1 );
+[ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
+EEG = pop_loadset('filename', [ICA_readfolder '\' pretext ...
+    filelist(s).name(numstart:numend) posttext readname '_ICA.set']);
 
 % open current dataset
-cd(readfolder)
-filelist = dir('*.set'); 
-EEG = pop_loadset('filename', filelist(s).name);
-[ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 2 );
+EEG = pop_loadset('filename', [readfolder 'P' filelist(s).name(2:4)...
+    '_PAIN_sr512_PreClean_HP01_ZapP_LP40_IP_AvRef.set']);
+[ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
 
 % 11b.- apply ICA weights to current dataset
 EEG = pop_editset(EEG, 'run', [], 'icaweights', 'ALLEEG(1).icaweights',...
@@ -463,26 +467,22 @@ pop_selectcomps(EEG, [1:24] );
 % plot component activations
 pop_eegplot( EEG, 0, 1, 1);
 
-% You can project out the components by clicking on "accept" which will
-% turn to "reject" and then clicking OK
-% There will be a dialog asking you if you are sure. On this box there are
-% two options to visualize the data before and after projecting these
-% components out. Check both. If you are satisfied, then click OK
-
-[ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 3,'gui','off'); 
+% project out the selected components
+EEG = pop_subcomp( EEG, [1  2  3], 1); %check both plot options (single 
+% trials and ERP's) to check result before clicking OK
+[ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 2,'gui','off'); 
 
 %save dataset
-EEG = pop_saveset( EEG, 'filename',[writefolder '\' ...
-        pretext filelist(s).name(numstart:numend) posttext writename '.set']);
+EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4)...
+    '_PAIN_sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA.set']);
 
 clear EEG CURRENTSET ALLEEG
 
-%% R2-Baselining and artefact rejection                 MANUAL INPUT NEEDED
 
-readname = 'sr512_PreClean_HP01_ZapP_LP40_IP_Ref_lEp_ICA';
-readfolder = [processed '\round2\' readname];
-writename = [readname '_BL_Art'];
-writefolder = [processed '\round2\' writename];% make sure this folder exists
+%% R2-Baselining and artefact rejection
+
+readfolder = writefolder;
+writefolder = [readfolder '_Art\'];%make sure this folder exists
 cd(readfolder);
 filelist = dir('*.set'); 
 
@@ -492,7 +492,8 @@ filelist = dir('*.set');
 s = 1;
     
 %open dataset
-EEG = pop_loadset('filename', filelist(s).name);
+EEG = pop_loadset('filename', [readfolder '\' pretext ...
+    filelist(s).name(numstart:numend) posttext readname '.set']);
 
 %  Make sure to check which baseline to use. I've chosen epoch mean here, but
 %  this might not be optimal for your type of analysis
@@ -506,24 +507,23 @@ pop_eegplot( EEG, 1, 1, 1);
 %click on reject at the end
 
 %save dataset
-EEG = pop_saveset( EEG, 'filename',[writefolder '\' ...
-    pretext filelist(s).name(numstart:numend) posttext writename '.set']);
+EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4) ...
+    '_PAIN_sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art.set']);
 
 clear EEG
 
 %% R2-Laplacian transform
 
-readname = 'sr512_PreClean_HP01_ZapP_LP40_IP_Ref_lEp_ICA_BL_Art';
-readfolder = [processed '\round2\' readname];
-writename = [readname '_Lap'];
-writefolder = [processed '\round2\' writename];% make sure this folder exists
+readfolder = writefolder;
+writefolder = [readfolder '_Lap\'];%make sure this folder exists
 cd(readfolder);
 filelist = dir('*.set'); 
 
 for s = 1:length(filelist)
 
     %open dataset
-    EEG = pop_loadset('filename', filelist(s).name);
+    EEG = pop_loadset('filename', [readfolder '\' pretext ...
+        filelist(s).name(numstart:numend) posttext readname '.set']);
 
     % 13b.- perform Laplacian
     interelectrodedist=zeros(EEG.nbchan);
@@ -550,8 +550,8 @@ for s = 1:length(filelist)
     EEG.data = ldata;
     
     %save dataset
-    EEG = pop_saveset( EEG, 'filename',[writefolder '\' pretext ...
-        filelist(s).name(numstart:numend) posttext writename '.set']);
+    EEG = pop_saveset( EEG, 'filename',[writefolder 'P' filelist(s).name(2:4)...
+        '_PAIN_sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art_Lap.set']);
 
     clear EEG
 
@@ -561,24 +561,23 @@ end
 %% R2-Convert .set files to FieldTrip format
 % This is only useful if you want to conduct your analyses in Fieldtrip
 
-readname = 'sr512_PreClean_HP01_ZapP_LP40_IP_Ref_lEp_ICA_BL_Art_Lap';
-readfolder = [processed '\round2\' readname];
-writename = [readname '_FT'];
-writefolder = [processed '\round2\' writename];% make sure this folder exists
+readfolder = writefolder;
+writefolder = [readfolder '_FT\'];%make sure this folder exists
 cd(readfolder);
 filelist = dir('*.set'); 
 
 for s = 1:length(filelist)
     
-    EEG = pop_loadset('filename', filelist(s).name);
+    EEG = pop_loadset('filename', filelist(s).name, 'filepath', readfolder);
     FtEEG = eeglab2fieldtrip( EEG, 'preprocessing', 'none' );          
     % attach event and epcoh fields to fieldtrip structure
     FtEEG.epoch = EEG.epoch;
     FtEEG.event = EEG.event;                                      
-    
-    %save dataset in fieldtrip format
-    save ([writefolder '\' pretext filelist(s).name(numstart:numend) ...
-        posttext writename], 'FtEEG');                                             
+    % Specify name you wish dataset to be saved with
+    cd(writefolder);
+    fieldname = ['AP' filelist(s).name(2:4) ...
+        '_PAIN_sr512_PreClean_HP01_ZapP_LP40_IP_AvRef_ICA_BL_Art_Lap_FT'];
+    save (fieldname, 'FtEEG');                                             
     
     clear EEG FtEEG
 end

@@ -28,8 +28,8 @@ import os
 """import data"""
 ###############################################################################
 
-# define your working directory:
-working_dir = "C:/Users/raque/Dropbox/EEG_Course/EEGCourse 2021/EEGCourse/" #change this to match yours
+# define your working directory: (change this to match yours)
+working_dir = "C:/Users/raquel/Dropbox/EEG_Course/EEGCourse 2021/EEGCourse/" 
 P3_data_dir = working_dir + 'DataOddball/' 
 
 # load the channel information for BioSemi files (.fif)
@@ -47,8 +47,8 @@ filt_raw = raw.copy() #create a copy of the raw data and name it "filt_raw"
 filt_raw.load_data().filter(l_freq=0.1, h_freq=40) #apply the bandpass filter
 
 # notice that now we have two datasets, the raw set and the filtered set.
-# this allows us to go back to the raw data if we want to change anything in the analysis.
-# it also helps us keep track of all the transformations that have been applied to the data.
+# this allows us to go back to the raw data if we want to change anything 
+# in the analysis and helps us keep track of everything.
 
 # Check if the filters have been correctly applied to the data by
 # visual inspection and by checking the output in the console
@@ -59,9 +59,7 @@ filt_raw.plot() #time domain
 """remove and interpolate bad channels"""
 ###############################################################################
 
-# Bad channels are marked by adding them to the list of 'bads' within the info object.
-# scroll through your data (plot filtered data in the time domain) and identify whether there
-# are any channels that look VERY bad. 
+# plot data
 filt_raw.plot()
 
 # To mark a channel as bad, simply click on it, and you will see it turn grey.
@@ -83,9 +81,10 @@ events = mne.find_events(raw)
 # The event_id is a dictionary in which you can name your conditions. tmin/tmax
 # defines the length of the epoch relative to the event in seconds
 # no baseline correction is done at this point to avoid problems for ICA
-epochs = mne.Epochs(interp_filt_raw, events, event_id = {'Standard':3, 'Oddball':4}, tmin=-0.2, tmax=1,
-                     proj=False, baseline=(None),
-                     preload=True, reject=None)
+epochs = mne.Epochs(interp_filt_raw, events, 
+                    event_id = {'Standard':3, 'Oddball':4}, tmin=-0.2, tmax=1,
+                    proj=False, baseline=(None),
+                    preload=True, reject=None)
 
 # Check how many epochs of each type were created
 np.count_nonzero(epochs.events[:,2] == 3)
@@ -105,8 +104,9 @@ epochs.set_eeg_reference().apply_proj().average()
 
 # Plot the epochs to do visual trial rejection.
 epochs.plot(n_epochs = 5, n_channels = 64)
+
 # - Click on an epoch to reject it from the dataset
-# - Use keyboard shortcuts to adapt the window size (HELP to see keyboard controls)
+# - Click HELP for keyboard controls
 # - Close the figure for the selected epochs to be rejected
 
 epochs.drop #this shows you the number of remaining epochs in each condition
@@ -132,7 +132,7 @@ ica.fit(epochs)
 # clicking on a component will mark it as bad 
 ica.plot_components()
 
-# Plot the properties of a single component (e.g. to check its frequency profile)
+# Plot the properties of a single component
 ica.plot_properties(epochs, picks=11)
 
 #Look at the timecourse of the component
