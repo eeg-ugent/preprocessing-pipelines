@@ -19,3 +19,7 @@ ZaplinePlus https://github.com/MariusKlug/zapline-plus <br />
 ## Pipeline_2 (MNE - Python) <br /> very basic preprocessing pipeline
 ### dependencies
 MNE https://mne.tools/stable/index.html <br />
+
+## Cutting_Gardens_Preproc_tutorial (MNE - Python) <br /> preprocessing tutorial
+### dependencies
+For installation instructions check [here](https://github.com/eeg-ugent/Ghent_CuttingGardens2023/wiki/4.-Preparation-for-MNE-workshops) <br />
