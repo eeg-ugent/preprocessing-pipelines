@@ -20,6 +20,11 @@ ZaplinePlus https://github.com/MariusKlug/zapline-plus <br />
 ### dependencies
 MNE https://mne.tools/stable/index.html <br />
 
+## Pipeline_3 (MNE - Python) <br /> preprocessing pipeline with ICA backtransform and basic ERP's
+### dependencies
+MNE https://mne.tools/stable/index.html <br />
+For installation instructions check [here](https://github.com/eeg-ugent/Ghent_CuttingGardens2023/wiki/4.-Preparation-for-MNE-workshops) <br />
+
 ## Cutting_Gardens_Preproc_tutorial (MNE - Python) <br /> preprocessing tutorial
 ### dependencies
 For installation instructions check [here](https://github.com/eeg-ugent/Ghent_CuttingGardens2023/wiki/4.-Preparation-for-MNE-workshops) <br />
